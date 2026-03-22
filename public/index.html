@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Football Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">⚽</span>
+        <span class="logo-text">FootballTracker</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- Search bar -->
+    <section class="search-section">
+      <h1 class="hero-title">Track Your Favourite Teams</h1>
+      <p class="hero-sub">Search for a team and add it to your dashboard.</p>
+      <div class="search-wrap">
+        <input
+          id="searchInput"
+          class="search-input"
+          type="text"
+          placeholder="Search team name (e.g. Arsenal, Bayern…)"
+          autocomplete="off"
+        />
+        <div id="searchResults" class="search-results hidden"></div>
+      </div>
+    </section>
+
+    <!-- Favourite teams -->
+    <section class="section" id="favouritesSection">
+      <h2 class="section-title">My Teams</h2>
+      <p class="empty-hint" id="emptyHint">Add a team above to get started.</p>
+      <div class="teams-grid" id="teamsGrid"></div>
+    </section>
+
+    <!-- Team detail panel -->
+    <div class="detail-overlay hidden" id="detailOverlay">
+      <div class="detail-panel" id="detailPanel">
+        <button class="close-btn" id="closeDetail">&times;</button>
+        <div id="detailContent" class="detail-content">
+          <div class="spinner-wrap"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
