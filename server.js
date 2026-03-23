@@ -95,9 +95,8 @@ app.get('/api/teams/search', async (req, res) => {
 app.get('/api/fixtures/recent', async (req, res) => {
   const { teamId } = req.query;
   if (!teamId) return res.status(400).json({ error: 'teamId required' });
-  // Most leagues use the calendar year they started as season ID (e.g. 2025/26 = 2025)
-  const now = new Date();
-  const season = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+  // Free plan only supports seasons 2022–2024; use the most recent available
+  const season = 2024;
   try {
     const data = await apiFetch('fixtures', { team: teamId, season });
     res.json(data);
