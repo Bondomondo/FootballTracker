@@ -33,7 +33,6 @@ const TTL = {
   FIXTURES: 60 * 60 * 1000,           // 1h   – recent fixtures
   STANDINGS: 6 * 60 * 60 * 1000,      // 6h   – standings
   STATISTICS: 6 * 60 * 60 * 1000,     // 6h   – team stats
-  LIVE: 5 * 60 * 1000,                // 5min – live scores
 };
 
 async function apiFetch(endpoint, params = {}) {
@@ -45,9 +44,7 @@ async function apiFetch(endpoint, params = {}) {
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
 
   const cacheKey = url.toString();
-  const ttl = endpoint === 'fixtures' && params.live
-    ? TTL.LIVE
-    : endpoint === 'teams'
+  const ttl = endpoint === 'teams'
     ? TTL.SEARCH
     : endpoint === 'standings'
     ? TTL.STANDINGS
@@ -100,18 +97,6 @@ app.get('/api/fixtures/recent', async (req, res) => {
   if (!teamId) return res.status(400).json({ error: 'teamId required' });
   try {
     const data = await apiFetch('fixtures', { team: teamId, last });
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Next N fixtures for a team
-app.get('/api/fixtures/upcoming', async (req, res) => {
-  const { teamId, next = 5 } = req.query;
-  if (!teamId) return res.status(400).json({ error: 'teamId required' });
-  try {
-    const data = await apiFetch('fixtures', { team: teamId, next });
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });

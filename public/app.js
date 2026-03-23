@@ -241,14 +241,10 @@ async function openDetail(teamId) {
   if (!fav) return;
 
   try {
-    // Fetch recent + upcoming in parallel; standings/stats need leagueId
-    const [recentData, upcomingData] = await Promise.all([
-      apiFetch(`/api/fixtures/recent?teamId=${teamId}&last=10`),
-      apiFetch(`/api/fixtures/upcoming?teamId=${teamId}&next=5`),
-    ]);
+    // Fetch only recent fixtures (free plan does not support the `next` parameter)
+    const recentData = await apiFetch(`/api/fixtures/recent?teamId=${teamId}&last=10`);
 
-    const recent   = (recentData.response || []).sort((a,b) => new Date(b.fixture.date) - new Date(a.fixture.date));
-    const upcoming = upcomingData.response || [];
+    const recent = (recentData.response || []).sort((a,b) => new Date(b.fixture.date) - new Date(a.fixture.date));
 
     // Try to get league/season from recent fixture
     let leagueId = null, season = null;
@@ -282,13 +278,11 @@ async function openDetail(teamId) {
 
       <div class="detail-tabs">
         <button class="tab-btn active" data-tab="recent">Recent Results</button>
-        <button class="tab-btn" data-tab="upcoming">Upcoming</button>
         <button class="tab-btn" data-tab="standings">Standings</button>
         <button class="tab-btn" data-tab="stats">Statistics</button>
       </div>
 
       <div id="tab-recent" class="tab-pane active">${buildRecentHtml(recent, teamId)}</div>
-      <div id="tab-upcoming" class="tab-pane">${buildUpcomingHtml(upcoming)}</div>
       <div id="tab-standings" class="tab-pane">${standingsHtml}</div>
       <div id="tab-stats" class="tab-pane">${statsHtml}</div>
     `;
@@ -336,26 +330,6 @@ function buildRecentHtml(fixtures, teamId) {
       </div>
     `;
   }).join('') + `</div>`;
-}
-
-function buildUpcomingHtml(fixtures) {
-  if (!fixtures.length) return '<p style="color:var(--muted)">No upcoming fixtures found.</p>';
-  return `<div class="fixture-list">` + fixtures.map(f => `
-    <div class="fixture-item">
-      <div class="fixture-team">
-        <img src="${f.teams.home.logo}" alt="" onerror="this.src='https://via.placeholder.com/22'"/>
-        ${f.teams.home.name}
-      </div>
-      <div class="fixture-score">
-        vs
-        <span class="fixture-date">${formatDate(f.fixture.date)}</span>
-      </div>
-      <div class="fixture-team away">
-        ${f.teams.away.name}
-        <img src="${f.teams.away.logo}" alt="" onerror="this.src='https://via.placeholder.com/22'"/>
-      </div>
-    </div>
-  `).join('') + `</div>`;
 }
 
 function buildStandingsHtml(data, highlightTeamId) {
