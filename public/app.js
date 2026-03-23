@@ -177,10 +177,12 @@ function buildCard(fav) {
 
 async function loadCardData(teamId) {
   try {
-    const data = await apiFetch(`/api/fixtures/recent?teamId=${teamId}&last=5`);
-    const fixtures = (data.response || []).sort(
-      (a, b) => new Date(b.fixture.date) - new Date(a.fixture.date)
-    );
+    const data = await apiFetch(`/api/fixtures/recent?teamId=${teamId}`);
+    const now = Date.now();
+    // Keep only played fixtures (status short = FT, AET, PEN, etc.) sorted newest first
+    const fixtures = (data.response || [])
+      .filter(f => new Date(f.fixture.date) <= now && f.goals.home !== null)
+      .sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date));
     fixtureCache[teamId] = fixtures;
     updateCardUI(teamId, fixtures);
   } catch (err) {
@@ -194,18 +196,19 @@ function updateCardUI(teamId, fixtures) {
   const statsEl = document.getElementById(`stats-${teamId}`);
   if (!formEl || !statsEl) return;
 
-  const results = fixtures.map(f => getResultForTeam(f, teamId)).filter(Boolean);
+  const last5 = fixtures.slice(0, 5);
+  const results = last5.map(f => getResultForTeam(f, teamId)).filter(Boolean);
 
   formEl.innerHTML = results.map(r => `<div class="form-dot ${r}">${r}</div>`).join('');
 
   const wins = results.filter(r => r === 'W').length;
   const draws = results.filter(r => r === 'D').length;
   const losses = results.filter(r => r === 'L').length;
-  const goalsFor = fixtures.reduce((sum, f) => {
+  const goalsFor = last5.reduce((sum, f) => {
     const isHome = f.teams.home.id === teamId;
     return sum + (isHome ? (f.goals.home || 0) : (f.goals.away || 0));
   }, 0);
-  const goalsAgainst = fixtures.reduce((sum, f) => {
+  const goalsAgainst = last5.reduce((sum, f) => {
     const isHome = f.teams.home.id === teamId;
     return sum + (isHome ? (f.goals.away || 0) : (f.goals.home || 0));
   }, 0);
@@ -241,10 +244,18 @@ async function openDetail(teamId) {
   if (!fav) return;
 
   try {
-    // Fetch only recent fixtures (free plan does not support the `next` parameter)
-    const recentData = await apiFetch(`/api/fixtures/recent?teamId=${teamId}&last=10`);
+    // Reuse cached season data if available, otherwise fetch
+    let allFixtures = fixtureCache[teamId];
+    if (!allFixtures) {
+      const recentData = await apiFetch(`/api/fixtures/recent?teamId=${teamId}`);
+      const now = Date.now();
+      allFixtures = (recentData.response || [])
+        .filter(f => new Date(f.fixture.date) <= now && f.goals.home !== null)
+        .sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date));
+      fixtureCache[teamId] = allFixtures;
+    }
 
-    const recent = (recentData.response || []).sort((a,b) => new Date(b.fixture.date) - new Date(a.fixture.date));
+    const recent = allFixtures.slice(0, 10);
 
     // Try to get league/season from recent fixture
     let leagueId = null, season = null;
