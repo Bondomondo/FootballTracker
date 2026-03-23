@@ -91,12 +91,15 @@ app.get('/api/teams/search', async (req, res) => {
   }
 });
 
-// Last N fixtures for a team
+// Fixtures for a team in the current season (free plan only supports team+season)
 app.get('/api/fixtures/recent', async (req, res) => {
-  const { teamId, last = 5 } = req.query;
+  const { teamId } = req.query;
   if (!teamId) return res.status(400).json({ error: 'teamId required' });
+  // Most leagues use the calendar year they started as season ID (e.g. 2025/26 = 2025)
+  const now = new Date();
+  const season = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
   try {
-    const data = await apiFetch('fixtures', { team: teamId, last });
+    const data = await apiFetch('fixtures', { team: teamId, season });
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
