@@ -140,9 +140,13 @@ app.get('/api/cache/stats', (_req, res) => {
   res.json({ entries: cache.size });
 });
 
-app.listen(PORT, () => {
-  console.log(`Football Tracker running at http://localhost:${PORT}`);
-  if (!API_KEY) {
-    console.warn('⚠  API_FOOTBALL_KEY not set – add it to .env before making requests.');
-  }
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Football Tracker running at http://localhost:${PORT}`);
+    if (!API_KEY) {
+      console.warn('⚠  API_FOOTBALL_KEY not set – add it to .env before making requests.');
+    }
+  });
+}
+
+module.exports = app;
