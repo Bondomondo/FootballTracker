@@ -146,3 +146,92 @@ app.listen(PORT, () => {
     console.warn('⚠  API_FOOTBALL_KEY not set – add it to .env before making requests.');
   }
 });
+
+// ── Trading Bot routes ───────────────────────────────────────────────────────
+
+const tradingPortfolio = require('./trading/portfolio');
+const tradingBot       = require('./trading/bot');
+const { FICTIONAL_STOCKS: STOCKS } = require('./trading/fictional-stocks');
+const { priceCache }   = require('./trading/market-data');
+
+// Lazy-load market data module to avoid issues if Yahoo Finance is down at startup
+let marketDataModule = null;
+function getMarketData() {
+  if (!marketDataModule) marketDataModule = require('./trading/market-data');
+  return marketDataModule;
+}
+
+app.use(express.json());
+
+// GET /api/trading/portfolio — full portfolio summary
+app.get('/api/trading/portfolio', (_req, res) => {
+  try {
+    const state = tradingPortfolio.load();
+    res.json(tradingPortfolio.getSummary(state));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/trading/history — all daily snapshots
+app.get('/api/trading/history', (_req, res) => {
+  try {
+    const state = tradingPortfolio.load();
+    res.json({ snapshots: state.snapshots || [] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/trading/stocks — fictional stock list with latest cached prices
+app.get('/api/trading/stocks', (_req, res) => {
+  try {
+    const state = tradingPortfolio.load();
+    const stocks = STOCKS.map(s => {
+      const cached = priceCache.get(s.realTicker);
+      const priceData = cached && Date.now() < cached.expiresAt ? cached.data : null;
+      const position = state.positions[s.symbol] || null;
+      return {
+        symbol: s.symbol,
+        name: s.name,
+        sector: s.sector,
+        price: priceData?.price || null,
+        change: priceData?.change || null,
+        changePercent: priceData?.changePercent || null,
+        stale: priceData?.stale || false,
+        held: position ? position.shares : 0,
+      };
+    });
+    res.json({ stocks });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/trading/run — manually trigger a trading cycle
+app.post('/api/trading/run', async (_req, res) => {
+  try {
+    const result = await tradingBot.runDailyTradingCycle({ force: true });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/trading/status — bot status
+app.get('/api/trading/status', (_req, res) => {
+  try {
+    const { getNextRunTime } = require('./trading/scheduler');
+    const status = tradingBot.getStatus();
+    res.json({
+      ...status,
+      nextRun: getNextRunTime().toISOString(),
+    });
+  } catch (err) {
+    // scheduler may not be fully init'd yet
+    res.json({ ...tradingBot.getStatus(), nextRun: null });
+  }
+});
+
+// Start the scheduler
+require('./trading/scheduler');
